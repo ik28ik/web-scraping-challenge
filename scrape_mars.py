@@ -9,8 +9,10 @@ import pandas as pd
 def scrape_info():
 
     # path
-    executable_path = {'executable_path': 'chromedriver.exe'}
-    browser = Browser("chrome", **executable_path, headless=False)
+    # executable_path = {'executable_path': 'chromedriver.exe'}
+    # browser = Browser("chrome", **executable_path, headless=False)
+
+    browser = Browser("chrome")
 
     # Visit the NASA news URL
     url='https://mars.nasa.gov/news/?page=0&per_page=40&order=publish_date+desc%2Ccreated_at+desc&search=&category=19%2C165%2C184%2C204&blank_scope=Latest '
@@ -23,14 +25,14 @@ def scrape_info():
 
     mars= {}
 
-    news = soup.find("div", class_="list_text")
-    news_title = news.find("div", class_="content_title").text
-    news_prgf = news.find("div", class_="article_teaser_body").text
+    
+    news_title = soup.find_all("div", class_="content_title")
+    news_prgf = soup.find("div", class_="article_teaser_body").text
 
     print(news_title)
     print(news_prgf)
 
-    mars['news_title']=news_title
+    mars['news_title']=news_title[1].text
     mars['news_p']=news_prgf
 
     url2='https://www.jpl.nasa.gov/spaceimages/?search=&category=Mars'
@@ -72,11 +74,23 @@ def scrape_info():
     #     #print("<---------------------------------------------------------------------------------->")
     #     mars["weather"] = mars_weather[0]
 
-    df=pd.read_html('https://space-facts.com/mars/')[0]
-    df.columns=['decription']
-    # df.set_index('decription', inplace=True)
-    html_table=df.to_html
-    mars['facts']=html_table
+    # df=pd.read_html('https://space-facts.com/mars/')[0]
+    # df.columns=['decription','values']
+    # # df.set_index('decription', inplace=True)
+    # html_table=df.to_html
+    # mars['facts']=html_table
+
+    url="http://space-facts.com/mars/"
+    tables = pd.read_html(url)
+    tables[0]
+    df=tables[0]
+    df
+    df.columns=['Attributes','Values']
+    df
+    html_table = df.to_html()
+    html_table=html_table.replace('\n', '')
+    mars['facts'] = html_table
+    df.to_html('table.html')
 
     url4='https://astrogeology.usgs.gov/search/results?q=hemisphere+enhanced&k1=target&v1=Mars'
     browser.visit(url4)
