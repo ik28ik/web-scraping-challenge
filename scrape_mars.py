@@ -5,6 +5,7 @@ import os
 from splinter import Browser
 import time
 import pandas as pd
+import re
 
 def scrape_info():
 
@@ -23,22 +24,28 @@ def scrape_info():
     html = browser.html
     soup = BeautifulSoup(html, 'html.parser')
 
+    # Create Mission to Mars global dictionary that can be imported into Mongo
     mars= {}
 
-    
+    # NASA MARS NEWS
+    # Retrieve the latest element that contains news title and news_paragraph
     news_title = soup.find_all("div", class_="content_title")
     news_prgf = soup.find("div", class_="article_teaser_body").text
 
     print(news_title)
     print(news_prgf)
 
+    # Dictionary entry from MARS NEWS
     mars['news_title']=news_title[1].text
     mars['news_p']=news_prgf
 
+    # FEATURED IMAGE
+    # Visit Mars Space Images 
     url2='https://www.jpl.nasa.gov/spaceimages/?search=&category=Mars'
     browser.visit(url2)
     time.sleep(.02)
 
+    # Click the image to view it
     click_image= browser.find_by_id('full_image')
     click_image.click()
     time.sleep(5)
@@ -47,60 +54,82 @@ def scrape_info():
     click_info.click()
     time.sleep(5)
 
+    # HTML Object and Parse with Beautiful Soup
     html = browser.html
     soup = BeautifulSoup(html, 'html.parser')
 
+    # Retrieve background-image url from figure tag 
     get_featured_image = soup.find("figure", class_="lede")
 
+    # Retrieve image URL from src tag
     featured_image_url="https://www.jpl.nasa.gov"+get_featured_image.a.img["src"]
 
+    # Display full link to featured image
     featured_image_url
 
+    # Dictionary entry from MARS NEWS
     mars['featured_image_url']=featured_image_url 
 
-    # url3='https://twitter.com/marswxreport?lang=en'
-    # browser.visit(url3)
-    # time.sleep(.2)
 
-    # html = browser.html
-    # soup = BeautifulSoup(html, 'html.parser')
+    # Mars Weather 
+    # Visit Weather Twitter through splinter module 
+    url3='https://twitter.com/marswxreport?lang=en'
+    browser.visit(url3)
+    time.sleep(2)
 
-    # results = soup2.find_all('div', class_="js-tweet-text-container")
-    #     results
-    #     mars_weather=[]
-    #     for result in results:
-    #         mars_weather.append(result.find('p',class_="TweetTextSize TweetTextSize--normal js-tweet-text tweet-text").text)
-    #     #print(mars_weather)
-    #     #print("<---------------------------------------------------------------------------------->")
-    #     mars["weather"] = mars_weather[0]
+    # HTML Object and Parse with Beautiful Soup
+    html = browser.html
+    soup = BeautifulSoup(html, 'html.parser')
 
-    # df=pd.read_html('https://space-facts.com/mars/')[0]
-    # df.columns=['decription','values']
-    # # df.set_index('decription', inplace=True)
-    # html_table=df.to_html
-    # mars['facts']=html_table
+    # Retrieve all elements that contain weather related words
+    text_weather = re.compile(r'sol')
+    mars_weather = soup.find('span', text = text_weather)
+    mars_weather.text
 
+    # Dictionary entry from WEATHER TWEET
+    mars['weather'] = mars_weather.text
+
+
+    # Mars Facts
+    # Visit Mars facts url
     url="http://space-facts.com/mars/"
+
+    # Use Pandas to "read_html" to parse the URL
     tables = pd.read_html(url)
+
+    # Find Mars Facts DataFrame in the lists of DataFrames
     tables[0]
     df=tables[0]
     df
+
+    # Assign the columns
     df.columns=['Attributes','Values']
     df
     html_table = df.to_html()
     html_table=html_table.replace('\n', '')
+
+    # Dictionary entry from Mars Facts
     mars['facts'] = html_table
     df.to_html('table.html')
 
+
+    # Mars Hemisphere
+    # Visit hemispheres website through splinter module 
     url4='https://astrogeology.usgs.gov/search/results?q=hemisphere+enhanced&k1=target&v1=Mars'
     browser.visit(url4)
     time.sleep(.2)
 
+    # HTML Object and Parse with Beautiful Soup
     html = browser.html
     soup = BeautifulSoup(html, 'html.parser')
 
+    # Create empty list for hemisphere urls 
     hemisphere_image_urls = []
+
+    # Retreive all items that contain mars hemispheres information
     links = browser.find_by_css('a.product-item h3')
+
+    # Loop through the items previously stored
     for i in range(len(links)):
         hemisphere = {}
         browser.find_by_css('a.product-item h3')[i].click()
@@ -108,11 +137,14 @@ def scrape_info():
         sample_element=browser.find_link_by_text('Sample').first
         hemisphere['image_url']=sample_element['href']
         hemisphere['title']=browser.find_by_css('h2.title').text
+
         hemisphere_image_urls.append(hemisphere)
         browser.back()
-
+        
+    # Dictionary entry from Mars Facts
     mars['hemisphere']= hemisphere_image_urls
 
+    # Return mars_data dictionary 
     return mars
 
 if __name__ == "__main__":
